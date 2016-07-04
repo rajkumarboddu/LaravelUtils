@@ -103,4 +103,134 @@ class Utils extends Controller
         return $obj_mixed;
     }
 
+    public static function uniqueMultidimArray($mix_array, $key) {
+        $temp_array = array();
+        $key_array = array();
+        foreach($mix_array as $val) {
+            if(is_array($val)){
+                if (!in_array($val[$key], $key_array)) {
+                    array_push($key_array,$val[$key]);
+                    array_push($temp_array,$val);
+                }
+            } else{
+                if (!in_array($val->{$key}, $key_array)) {
+                    array_push($key_array,$val->{$key});
+                    array_push($temp_array,$val);
+                }
+            }
+        }
+        return $temp_array;
+    }
+
+    public static function isUrlExist($url){
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_NOBODY, true);
+        curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        if($code == 200){
+            $status = true;
+        }else{
+            $status = false;
+        }
+        curl_close($ch);
+        return $status;
+    }
+
+    public static function getDistanceBtwLatLng($s_lat, $s_lng, $d_lat, $d_lng,$formatted=true){
+        $s_lat = doubleval($s_lat);
+        $s_lng = doubleval($s_lng);
+        $d_lat = doubleval($d_lat);
+        $d_lng = doubleval($d_lng);
+        $distance = ( 6371 * acos( cos( deg2rad($s_lat) ) * cos( deg2rad( $d_lat ) ) * cos( deg2rad( $d_lng ) - deg2rad($s_lng) )
+                + sin( deg2rad($s_lat) ) * sin( deg2rad( $d_lat ) ) ) );
+        if($distance<1){
+            return ($formatted) ? round($distance*1000,2).' m' : round($distance*1000,2);
+        }
+        return ($formatted) ? round($distance,3).' KM' : round($distance,3);
+    }
+
+    public static function removeDuplicates($array, $obj_attr_identifier){
+        $array1 = $array;
+        foreach($array as $key => $value){
+            foreach($array1 as $key1 => $value1){
+                if($value->{$obj_attr_identifier}==$value1->{$obj_attr_identifier} && $key1!=$key){
+                    unset($array1[$key]);
+                }
+            }
+        }
+        return array_values($array1);
+    }
+
+    public static function getCombinations($str) {
+        $words = explode(' ',$str);
+        $elements = pow(2, count($words))-1;
+
+        $result = array();
+
+        for ($i = 1; $i<=$elements; $i++){
+            $bin = decbin($i);
+            $padded_bin = str_pad($bin, count($words), "0", STR_PAD_LEFT);
+
+            $res = array();
+            for ($k=0; $k<count($words); $k++){
+                //append element, if binary position says "1";
+                if ($padded_bin[$k]==1){
+                    $res[] = $words[$k];
+                }
+            }
+
+            sort($res);
+            $result[] = implode(" ", $res);
+        }
+        sort($result);
+        return $result;
+    }
+
+    public static function resizeAndSaveImage($file_path, $destination_path, $width, $height){
+        $dir = substr($destination_path,0,strrpos($destination_path,'/'));
+        if(!(is_dir($dir))){
+            return false;
+        }
+        $img = Image::make(imagecreatefromjpeg($file_path));
+        $height = ($img->height()/$img->width())*$width;
+        /*if($img->width() > $img->height()){
+            $height = ($img->height()/$img->width())*$width;
+        } else{
+            $width = ($img->width()/$img->height())*$height;
+        }*/
+        $img->resize($width, $height);
+        if($img->save($destination_path)){
+            return true;
+        }
+        return false;
+    }
+
+    // To send success JSON response for web services
+    public static function sendSuccessJsonResponse($msg, $data=null, $extra_key_val_pairs=null){
+        $response = ['status'=>'1','message'=>$msg];
+        if($data!=null){
+            $response['data'] = $data;
+        }
+        if($extra_key_val_pairs!=null){
+            foreach ($extra_key_val_pairs as $key => $value) {
+                $response[$key] = $value;
+            }
+        }
+        return response()->json($response)->header('Content-Type', 'application/json');
+    }
+
+    // To send failure JSON response for web services
+    public static function sendFailureJsonResponse($msg, $data=null, $extra_key_val_pairs=null){
+        $response = ['status'=>'0','message'=>$msg];
+        if($data!=null){
+            $response['data'] = $data;
+        }
+        if($extra_key_val_pairs!=null){
+            foreach ($extra_key_val_pairs as $key => $value) {
+                $response[$key] = $value;
+            }
+        }
+        return response()->json($response)->header('Content-Type', 'application/json');
+    }
 }
